@@ -300,11 +300,10 @@ class SessionManager:
 
         rows = self._db.execute(
             """
-            SELECT id, session_id, turn_number, role, content,
-                   created_at, emotion_data
+            SELECT id, session_id, turn_number, role, content, created_at, emotion_data
             FROM messages
             WHERE session_id = ?
-            ORDER BY turn_number ASC, role ASC
+            ORDER BY turn_number ASC, created_at ASC
             """,
             (session_id,),
         )
