@@ -137,28 +137,37 @@ class DatabaseManager:
         """
         Context manager that provides a database connection.
 
-        For in-memory mode: reuses the single persistent connection.
-        For file mode: creates a new connection per operation
-        (SQLite is thread-safe with check_same_thread=False).
+        Streamlit runs each user interaction in a potentially different
+        thread. SQLite by default raises an error when a connection
+        created in one thread is used in another.
 
-        Usage:
-            with db.get_connection() as conn:
-                rows = conn.execute("SELECT * FROM sessions").fetchall()
+        Fix: check_same_thread=False tells SQLite to allow cross-thread
+        usage. This is safe here because:
+        - We have one user (local app, not a server)
+        - Each operation commits/rolls back before releasing
+        - No concurrent writes from multiple users
+
+        For in-memory mode: we keep a single persistent connection
+        (in-memory DBs are destroyed when connection closes).
+        For file mode: we create a fresh connection per operation.
         """
         if self.privacy_mode:
-            # In-memory: create once and reuse
+            # In-memory: create once and reuse across threads
             if self._memory_connection is None:
-                self._memory_connection = sqlite3.connect(":memory:")
+                self._memory_connection = sqlite3.connect(
+                    ":memory:",
+                    check_same_thread=False,  # ← allow Streamlit thread switching
+                )
                 self._memory_connection.row_factory = sqlite3.Row
-                # Enable WAL mode for better concurrent read performance
                 self._memory_connection.execute("PRAGMA journal_mode=WAL")
                 self._memory_connection.execute("PRAGMA foreign_keys=ON")
             yield self._memory_connection
+
         else:
-            # File-based: new connection per operation
+            # File-based: new connection per operation, cross-thread safe
             conn = sqlite3.connect(
                 self._db_path,
-                check_same_thread=False,
+                check_same_thread=False,  # ← allow Streamlit thread switching
             )
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA journal_mode=WAL")

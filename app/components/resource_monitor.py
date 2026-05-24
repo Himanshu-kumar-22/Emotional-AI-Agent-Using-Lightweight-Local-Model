@@ -74,9 +74,14 @@ def render_resource_sidebar(st, agent=None):
     if stats.get("gpu_info"):
         st.sidebar.markdown(f"🖥️ **GPU:** {stats['gpu_info']}")
 
-    # Session stats
+    # Session stats — wrapped in try/except to never crash the sidebar
     if agent and agent.is_ready:
         st.sidebar.markdown("---")
         st.sidebar.markdown("### 💬 Session Stats")
-        session_stats = agent.get_session_stats()
-        st.sidebar.metric("Turns", session_stats.get("turn_count", 0))
+        try:
+            session_stats = agent.get_session_stats()
+            st.sidebar.metric("Turns", session_stats.get("turn_count", 0))
+            st.sidebar.metric("Messages", session_stats.get("total_messages", 0))
+        except Exception:
+            # Silently skip stats if DB thread issue occurs
+            st.sidebar.caption("Stats unavailable")
