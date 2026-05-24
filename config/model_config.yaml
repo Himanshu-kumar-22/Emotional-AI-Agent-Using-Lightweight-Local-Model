@@ -1,0 +1,59 @@
+# ============================================================
+# Model Configuration
+# Static hyperparameters and model specifications
+# These values are less likely to change between runs than .env values
+# ============================================================
+
+emotion_detection:
+  distilbert:
+    model_id: "distilbert-base-uncased"
+    hidden_size: 768
+    num_layers: 6
+    num_attention_heads: 12
+    max_sequence_length: 128
+    dropout: 0.1
+    # INT8 quantization for CPU inference
+    quantize_for_inference: true
+
+  minilm:
+    model_id: "sentence-transformers/all-MiniLM-L6-v2"
+    hidden_size: 384
+    num_layers: 6
+    num_attention_heads: 12
+    max_sequence_length: 128
+    dropout: 0.1
+    quantize_for_inference: true
+
+# GoEmotions label mapping: 27 fine-grained -> 8 coarse categories
+emotion_label_mapping:
+  joy:      [joy, amusement, excitement, gratitude, love, optimism, pride, relief]
+  sadness:  [sadness, grief, remorse, disappointment, embarrassment]
+  anger:    [anger, annoyance, disapproval, disgust]
+  fear:     [fear, nervousness]
+  surprise: [surprise, realization, confusion, curiosity]
+  disgust:  [disgust]
+  trust:    [admiration, approval, caring, desire]
+  neutral:  [neutral]
+
+llm:
+  phi3_mini:
+    ollama_name: "phi3:mini"
+    parameters: "3.8B"
+    quantization: "Q4_K_M"
+    ram_required_gb: 2.4
+    context_length: 4096
+    recommended_for: "low_memory"  # < 8GB RAM
+
+  mistral_7b:
+    ollama_name: "mistral"
+    parameters: "7B"
+    quantization: "Q4_K_M"
+    ram_required_gb: 4.1
+    context_length: 8192
+    recommended_for: "standard"    # >= 8GB RAM
+
+context_smoothing:
+  window_size: 4
+  # Weights for turns in the window (most recent = highest weight)
+  # Index 0 = oldest turn, Index 3 = most recent turn
+  turn_weights: [0.1, 0.2, 0.3, 0.4]
