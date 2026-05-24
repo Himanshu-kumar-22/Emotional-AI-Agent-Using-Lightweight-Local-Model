@@ -1,0 +1,70 @@
+{
+  "model_id": "distilbert-base-uncased",
+  "num_labels": 8,
+  "emotion_labels": [
+    "joy",
+    "sadness",
+    "anger",
+    "fear",
+    "surprise",
+    "disgust",
+    "trust",
+    "neutral"
+  ],
+  "best_epoch": 5,
+  "best_metrics": {
+    "accuracy": 0.43327780862483806,
+    "macro_f1": 0.5588284009269838,
+    "weighted_f1": 0.6683072761415403
+  },
+  "training_history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.704824977519785,
+      "val_loss": 0.544860062529059,
+      "accuracy": 0.3288913566537109,
+      "macro_f1": 0.5069411635603406,
+      "weighted_f1": 0.6405365308087309
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.49543569602326865,
+      "val_loss": 0.5720379864468293,
+      "accuracy": 0.3742365352581899,
+      "macro_f1": 0.5439524043488214,
+      "weighted_f1": 0.6565213435158768
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.41380046716549423,
+      "val_loss": 0.595633721702239,
+      "accuracy": 0.3883027947436609,
+      "macro_f1": 0.5495733663697819,
+      "weighted_f1": 0.661900744378644
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.34925293222756126,
+      "val_loss": 0.6571563477025313,
+      "accuracy": 0.40644086618545255,
+      "macro_f1": 0.548555018228396,
+      "weighted_f1": 0.6588449770539088
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.30669992087190256,
+      "val_loss": 0.7059052046607522,
+      "accuracy": 0.43327780862483806,
+      "macro_f1": 0.5588284009269838,
+      "weighted_f1": 0.6683072761415403
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 2e-05,
+    "batch_size": 32,
+    "max_length": 128,
+    "weight_decay": 0.01,
+    "device": "mps"
+  },
+  "hf_repo_id": "criticalEdgeK/distilbert-emotion-goemotions-8class"
+}

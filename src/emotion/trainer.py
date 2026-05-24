@@ -206,10 +206,27 @@ class EmotionModelTrainer:
         """Build a DataLoader with proper collation for our dataset format."""
 
         def collate_fn(batch):
+            # Defensive handling — dataset items may be tensors or plain lists
+            def to_tensor_long(x):
+                if isinstance(x, torch.Tensor):
+                    return x.long()
+                return torch.tensor(x, dtype=torch.long)
+
+            def to_tensor_float(x):
+                if isinstance(x, torch.Tensor):
+                    return x.float()
+                return torch.tensor(x, dtype=torch.float32)
+
             return {
-                "input_ids": torch.stack([x["input_ids"] for x in batch]),
-                "attention_mask": torch.stack([x["attention_mask"] for x in batch]),
-                "labels": torch.stack([x["labels"] for x in batch]),
+                "input_ids": torch.stack(
+                    [to_tensor_long(item["input_ids"]) for item in batch]
+                ),
+                "attention_mask": torch.stack(
+                    [to_tensor_long(item["attention_mask"]) for item in batch]
+                ),
+                "labels": torch.stack(
+                    [to_tensor_float(item["labels"]) for item in batch]
+                ),
             }
 
         return DataLoader(
@@ -217,8 +234,6 @@ class EmotionModelTrainer:
             batch_size=batch_size,
             shuffle=shuffle,
             collate_fn=collate_fn,
-            # num_workers > 0 causes issues with MPS on some macOS versions
-            # Setting to 0 is safe and sufficient for our dataset size
             num_workers=0,
             pin_memory=False,
         )
@@ -374,7 +389,7 @@ class EmotionModelTrainer:
                     val_loader,
                     desc=f"Epoch {epoch}/{settings.train_epochs} [Valid]",
                     ncols=80,
-                    leave=False,
+                    leave=True,
                 ):
                     input_ids = batch["input_ids"].to(self.device)
                     attention_mask = batch["attention_mask"].to(self.device)
@@ -387,8 +402,8 @@ class EmotionModelTrainer:
                     n_val_batches += 1
 
                     # Move to CPU for metric computation
-                    all_logits.append(logits.cpu().numpy())
-                    all_labels.append(labels.cpu().numpy())
+                    all_logits.append(logits.detach().cpu().float().numpy())
+                    all_labels.append(labels.detach().cpu().float().numpy())
 
             avg_val_loss = val_loss / n_val_batches
             all_logits = np.vstack(all_logits)
