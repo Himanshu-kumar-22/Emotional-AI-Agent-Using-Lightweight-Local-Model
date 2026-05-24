@@ -113,11 +113,13 @@ class EmotionalAgent:
         self,
         privacy_mode: Optional[bool] = None,
         llm_model: Optional[str] = None,
+        emotion_model: Optional[str] = None,
     ):
         self.privacy_mode = (
             privacy_mode if privacy_mode is not None else settings.privacy_mode_default
         )
         self.llm_model = llm_model or settings.llm_model_name
+        self.emotion_model = emotion_model or settings.emotion_model_type
 
         # Pipeline components — initialized lazily
         self._detector: Optional[EmotionDetector] = None
@@ -154,7 +156,7 @@ class EmotionalAgent:
 
             # 1. Emotion detector
             logger.info("Loading emotion model...")
-            self._detector = EmotionDetector()
+            self._detector = EmotionDetector(model_type=self.emotion_model)
             self._detector.load_model()
             if not self._detector.is_ready:
                 raise RuntimeError(
@@ -208,7 +210,7 @@ class EmotionalAgent:
         self._current_session_id = self._storage.create_session(
             {
                 "llm_model": self.llm_model,
-                "emotion_model": settings.emotion_model_type,
+                "emotion_model": self.emotion_model,
                 "privacy_mode": self.privacy_mode,
             }
         )

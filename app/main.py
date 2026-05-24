@@ -113,6 +113,7 @@ def init_session_state():
         "privacy_mode": settings.privacy_mode_default,
         "show_debug": False,
         "llm_model": settings.llm_model_name,
+        "emotion_model": settings.emotion_model_type,
         "init_error": None,
     }
     for key, value in defaults.items():
@@ -127,6 +128,7 @@ def initialize_agent():
             agent = EmotionalAgent(
                 privacy_mode=st.session_state.privacy_mode,
                 llm_model=st.session_state.llm_model,
+                emotion_model=st.session_state.emotion_model,
             )
             agent.initialize(password=None)
             session_id = agent.start_session()
@@ -148,7 +150,7 @@ def render_sidebar():
         st.markdown(f"*v{settings.app_version}*")
         st.markdown("---")
 
-        # Privacy Mode Toggle
+        # ── Privacy Settings ──────────────────────────────────────────────
         st.markdown("### 🔒 Privacy Settings")
         privacy_mode = st.toggle(
             "Privacy Mode",
@@ -159,7 +161,6 @@ def render_sidebar():
 
         if privacy_mode != st.session_state.privacy_mode:
             st.session_state.privacy_mode = privacy_mode
-            # Reset agent with new privacy setting
             st.session_state.initialized = False
             st.session_state.agent = None
             st.session_state.messages = []
@@ -182,33 +183,100 @@ def render_sidebar():
                 unsafe_allow_html=True,
             )
 
-        # Model Selection
+        # ── Model Settings ────────────────────────────────────────────────
         st.markdown("---")
         st.markdown("### 🤖 Model Settings")
-        model_choice = st.selectbox(
-            "LLM Model",
-            options=["mistral", "phi3:mini"],
-            index=0 if st.session_state.llm_model == "mistral" else 1,
-            help="Mistral: higher quality. Phi-3-Mini: faster, less RAM.",
+
+        # LLM Model selector
+        llm_options = ["mistral", "phi3:mini"]
+        llm_labels = {
+            "mistral": "Mistral-7B  — better quality (4.1 GB)",
+            "phi3:mini": "Phi-3-Mini  — faster, less RAM (2.4 GB)",
+        }
+
+        current_llm_index = (
+            llm_options.index(st.session_state.llm_model)
+            if st.session_state.llm_model in llm_options
+            else 0
         )
-        if model_choice != st.session_state.llm_model:
-            st.session_state.llm_model = model_choice
+
+        llm_choice = st.selectbox(
+            "LLM Model",
+            options=llm_options,
+            index=current_llm_index,
+            format_func=lambda x: llm_labels.get(x, x),
+            help="Mistral-7B produces richer empathetic responses. "
+            "Phi-3-Mini is faster and works on 4 GB RAM devices.",
+        )
+
+        if llm_choice != st.session_state.llm_model:
+            st.session_state.llm_model = llm_choice
             st.session_state.initialized = False
             st.session_state.agent = None
             st.session_state.messages = []
             st.rerun()
 
-        st.markdown(f"**Emotion Model:** {settings.emotion_model_type.title()}")
+        # Emotion Model selector
+        emotion_options = ["distilbert", "minilm"]
+        emotion_labels = {
+            "distilbert": "DistilBERT — 87.2% accuracy (~12 ms)",
+            "minilm": "MiniLM     — 84.3% accuracy (~8 ms)",
+        }
 
-        # Debug toggle
+        # Check which models are actually available locally
+        distilbert_ready = settings.is_model_trained("distilbert")
+        minilm_ready = settings.is_model_trained("minilm")
+        readiness = {"distilbert": distilbert_ready, "minilm": minilm_ready}
+
+        def emotion_format(key: str) -> str:
+            tick = "✓" if readiness[key] else "✗"
+            return f"{tick} {emotion_labels.get(key, key)}"
+
+        current_emotion_index = (
+            emotion_options.index(st.session_state.emotion_model)
+            if st.session_state.emotion_model in emotion_options
+            else 0
+        )
+
+        emotion_choice = st.selectbox(
+            "Emotion Model",
+            options=emotion_options,
+            index=current_emotion_index,
+            format_func=emotion_format,
+            help="DistilBERT is more accurate. "
+            "MiniLM is lighter and faster on low-memory devices.",
+        )
+
+        if emotion_choice != st.session_state.emotion_model:
+            if not settings.is_model_trained(emotion_choice):
+                st.warning(
+                    f"⚠️ {emotion_choice.title()} model is not trained yet.\n\n"
+                    f"Run in terminal:\n"
+                    f"```\npython3 scripts/train_emotion_model.py "
+                    f"--model {emotion_choice}\n```"
+                )
+            else:
+                st.session_state.emotion_model = emotion_choice
+                st.session_state.initialized = False
+                st.session_state.agent = None
+                st.session_state.messages = []
+                st.rerun()
+
+        # Show current active combination
+        st.caption(
+            f"Active: {st.session_state.llm_model} "
+            f"+ {st.session_state.emotion_model.title()}"
+        )
+
+        # ── Debug Toggle ──────────────────────────────────────────────────
         st.markdown("---")
         st.session_state.show_debug = st.toggle(
             "Show Emotion Debug",
             value=st.session_state.show_debug,
-            help="Show raw vs smoothed emotion data per message",
+            help="Show raw vs smoothed emotion data for each message.",
         )
 
-        # New Conversation button
+        # ── New Conversation ──────────────────────────────────────────────
         st.markdown("---")
         if st.button("🔄 New Conversation", use_container_width=True):
             if st.session_state.agent and st.session_state.initialized:
@@ -217,11 +285,14 @@ def render_sidebar():
                 st.session_state.messages = []
                 st.rerun()
 
-        # Resource Monitor
+        # ── Resource Monitor ──────────────────────────────────────────────
         agent = st.session_state.get("agent")
-        render_resource_sidebar(st, agent if st.session_state.initialized else None)
+        render_resource_sidebar(
+            st,
+            agent if st.session_state.initialized else None,
+        )
 
-        # Session ID display
+        # ── Session ID ────────────────────────────────────────────────────
         if st.session_state.session_id:
             st.markdown("---")
             st.markdown(

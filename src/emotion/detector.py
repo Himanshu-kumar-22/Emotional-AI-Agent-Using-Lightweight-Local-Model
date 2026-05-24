@@ -165,15 +165,82 @@ class EmotionDetector:
             return "distilbert-base-uncased"
         return "sentence-transformers/all-MiniLM-L6-v2"
 
+    def _ensure_model_downloaded(self):
+        """
+        Check if the model exists locally. If not, attempt to download
+        from HuggingFace Hub. Runs transparently on first launch.
+
+        This is the mechanism that allows users to run the app without
+        training anything themselves. You (the developer) train once,
+        upload to HuggingFace, and every user downloads automatically.
+
+        No HuggingFace token required — public repos are freely readable.
+        """
+        model_path = self._get_model_path()
+
+        # Model already exists locally — nothing to do
+        if (model_path / "config.json").exists():
+            return
+
+        # Determine which HF repo to pull from
+        if self.model_type == "distilbert":
+            repo_id = settings.hf_distilbert_repo
+        else:
+            repo_id = settings.hf_minilm_repo
+
+        if not repo_id:
+            # No repo configured — user must train manually
+            logger.warning(
+                f"Model '{self.model_type}' not found locally and no "
+                f"HuggingFace repo configured in .env.\n"
+                f"Option 1 — Train locally:\n"
+                f"  python3 scripts/train_emotion_model.py --model {self.model_type}\n"
+                f"Option 2 — Set HF repo in .env:\n"
+                f"  HF_DISTILBERT_REPO=username/repo-name"
+            )
+            return
+
+        logger.info(
+            f"Model '{self.model_type}' not found locally.\n"
+            f"Downloading from HuggingFace: {repo_id}\n"
+            f"This is a one-time download. Future runs use the local copy."
+        )
+
+        try:
+            from huggingface_hub import snapshot_download
+
+            model_path.mkdir(parents=True, exist_ok=True)
+
+            snapshot_download(
+                repo_id=repo_id,
+                local_dir=str(model_path),
+                # Skip non-PyTorch weight formats to save bandwidth
+                ignore_patterns=[
+                    "*.msgpack",
+                    "flax_model*",
+                    "tf_model*",
+                    "rust_model*",
+                ],
+            )
+            logger.info(f"✓ Model downloaded successfully to {model_path}")
+
+        except Exception as e:
+            logger.error(
+                f"Auto-download failed for '{self.model_type}': {e}\n"
+                f"Train manually: "
+                f"python3 scripts/train_emotion_model.py --model {self.model_type}"
+            )
+
     def load_model(self) -> bool:
         """
         Load the fine-tuned model from disk.
-
         Returns True if loaded successfully, False otherwise.
-        Called automatically on first detect() call.
         """
         from transformers import AutoTokenizer, AutoConfig
         from src.emotion.trainer import EmotionClassificationModel
+
+        # ← This line is the only change to the existing load_model method
+        self._ensure_model_downloaded()
 
         model_path = self._get_model_path()
 
@@ -188,16 +255,13 @@ class EmotionDetector:
             logger.info(f"Loading emotion model from {model_path}")
             start = time.time()
 
-            # Load tokenizer
             self._tokenizer = AutoTokenizer.from_pretrained(str(model_path))
 
-            # Reconstruct model architecture
             self._model = EmotionClassificationModel(
                 model_id=self._get_base_model_id(),
                 num_labels=len(self._emotion_labels),
             )
 
-            # Load trained weights
             state_dict = torch.load(
                 model_path / "pytorch_model.bin",
                 map_location=self.device,

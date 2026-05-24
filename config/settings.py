@@ -24,6 +24,7 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Literal
 from dotenv import load_dotenv
+from typing import Optional
 
 # ── Resolve project root ──────────────────────────────────────────────────────
 # __file__ is config/settings.py
@@ -123,33 +124,24 @@ class AppConfig:
     app_name: str = field(
         default_factory=lambda: _env_str("APP_NAME", "Emotional AI Agent")
     )
-    app_version: str = field(
-        default_factory=lambda: _env_str("APP_VERSION", "1.0.0")
-    )
-    debug: bool = field(
-        default_factory=lambda: _env_bool("DEBUG", False)
-    )
-    log_level: str = field(
-        default_factory=lambda: _env_str("LOG_LEVEL", "INFO")
-    )
+    app_version: str = field(default_factory=lambda: _env_str("APP_VERSION", "1.0.0"))
+    debug: bool = field(default_factory=lambda: _env_bool("DEBUG", False))
+    log_level: str = field(default_factory=lambda: _env_str("LOG_LEVEL", "INFO"))
 
     # ── Paths (all resolved relative to PROJECT_ROOT) ──────────────────────
     project_root: Path = field(default_factory=lambda: PROJECT_ROOT)
 
-    data_dir: Path = field(
-        default_factory=lambda: PROJECT_ROOT / "data"
-    )
-    raw_data_dir: Path = field(
-        default_factory=lambda: PROJECT_ROOT / "data" / "raw"
-    )
+    data_dir: Path = field(default_factory=lambda: PROJECT_ROOT / "data")
+    raw_data_dir: Path = field(default_factory=lambda: PROJECT_ROOT / "data" / "raw")
     processed_data_dir: Path = field(
         default_factory=lambda: PROJECT_ROOT / "data" / "processed"
     )
-    models_dir: Path = field(
-        default_factory=lambda: PROJECT_ROOT / "models"
-    )
+    models_dir: Path = field(default_factory=lambda: PROJECT_ROOT / "models")
     distilbert_model_path: Path = field(
-        default_factory=lambda: PROJECT_ROOT / "models" / "emotion" / "distilbert-emotion"
+        default_factory=lambda: PROJECT_ROOT
+        / "models"
+        / "emotion"
+        / "distilbert-emotion"
     )
     minilm_model_path: Path = field(
         default_factory=lambda: PROJECT_ROOT / "models" / "emotion" / "minilm-emotion"
@@ -192,14 +184,14 @@ class AppConfig:
     # Emoji and color mapping for the Streamlit UI emotion badges
     emotion_display: dict = field(
         default_factory=lambda: {
-            "joy":      {"emoji": "😊", "color": "#FFD700", "label": "Joy"},
-            "sadness":  {"emoji": "😢", "color": "#4169E1", "label": "Sadness"},
-            "anger":    {"emoji": "😠", "color": "#DC143C", "label": "Anger"},
-            "fear":     {"emoji": "😨", "color": "#8B008B", "label": "Fear"},
+            "joy": {"emoji": "😊", "color": "#FFD700", "label": "Joy"},
+            "sadness": {"emoji": "😢", "color": "#4169E1", "label": "Sadness"},
+            "anger": {"emoji": "😠", "color": "#DC143C", "label": "Anger"},
+            "fear": {"emoji": "😨", "color": "#8B008B", "label": "Fear"},
             "surprise": {"emoji": "😮", "color": "#FF8C00", "label": "Surprise"},
-            "disgust":  {"emoji": "🤢", "color": "#556B2F", "label": "Disgust"},
-            "trust":    {"emoji": "🤝", "color": "#20B2AA", "label": "Trust"},
-            "neutral":  {"emoji": "😐", "color": "#708090", "label": "Neutral"},
+            "disgust": {"emoji": "🤢", "color": "#556B2F", "label": "Disgust"},
+            "trust": {"emoji": "🤝", "color": "#20B2AA", "label": "Trust"},
+            "neutral": {"emoji": "😐", "color": "#708090", "label": "Neutral"},
         }
     )
 
@@ -210,12 +202,8 @@ class AppConfig:
     ollama_base_url: str = field(
         default_factory=lambda: _env_str("OLLAMA_BASE_URL", "http://localhost:11434")
     )
-    ollama_timeout: int = field(
-        default_factory=lambda: _env_int("OLLAMA_TIMEOUT", 120)
-    )
-    llm_max_tokens: int = field(
-        default_factory=lambda: _env_int("LLM_MAX_TOKENS", 300)
-    )
+    ollama_timeout: int = field(default_factory=lambda: _env_int("OLLAMA_TIMEOUT", 120))
+    llm_max_tokens: int = field(default_factory=lambda: _env_int("LLM_MAX_TOKENS", 300))
     llm_temperature: float = field(
         default_factory=lambda: _env_float("LLM_TEMPERATURE", 0.7)
     )
@@ -233,9 +221,7 @@ class AppConfig:
     train_batch_size: int = field(
         default_factory=lambda: _env_int("TRAIN_BATCH_SIZE", 32)
     )
-    train_epochs: int = field(
-        default_factory=lambda: _env_int("TRAIN_EPOCHS", 5)
-    )
+    train_epochs: int = field(default_factory=lambda: _env_int("TRAIN_EPOCHS", 5))
     train_learning_rate: float = field(
         default_factory=lambda: _env_float("TRAIN_LEARNING_RATE", 2e-5)
     )
@@ -281,18 +267,19 @@ class AppConfig:
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
-    def get_emotion_model_path(self) -> Path:
+    def get_emotion_model_path(self, model_type: Optional[str] = None) -> Path:
         """Return the correct model path based on configured emotion_model_type."""
-        if self.emotion_model_type == "distilbert":
+        target = model_type or self.emotion_model_type
+        if target == "distilbert":
             return self.distilbert_model_path
         return self.minilm_model_path
 
-    def is_model_trained(self) -> bool:
+    def is_model_trained(self, model_type: Optional[str] = None) -> bool:
         """
         Check if the emotion model has been trained and saved locally.
         Looks for the HuggingFace model config file as the presence indicator.
         """
-        model_path = self.get_emotion_model_path()
+        model_path = self.get_emotion_model_path(model_type)
         return (model_path / "config.json").exists()
 
     def __repr__(self) -> str:
