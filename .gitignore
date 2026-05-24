@@ -82,3 +82,11 @@ tmp/
 *.pem
 *.p12
 keystore/
+
+# Conda
+.conda/
+conda-meta/
+
+# Conda
+.conda/
+conda-meta/
