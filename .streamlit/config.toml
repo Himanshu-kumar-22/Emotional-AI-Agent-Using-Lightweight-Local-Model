@@ -1,0 +1,10 @@
+[server]
+# Disable file watcher — prevents torch.classes inspection warning
+fileWatcherType = "none"
+
+[runner]
+# Disable magic commands that trigger the torch warning
+magicEnabled = false
+
+[browser]
+gatherUsageStats = false

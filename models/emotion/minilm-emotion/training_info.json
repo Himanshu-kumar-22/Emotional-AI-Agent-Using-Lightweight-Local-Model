@@ -1,0 +1,70 @@
+{
+  "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+  "num_labels": 8,
+  "emotion_labels": [
+    "joy",
+    "sadness",
+    "anger",
+    "fear",
+    "surprise",
+    "disgust",
+    "trust",
+    "neutral"
+  ],
+  "best_epoch": 5,
+  "best_metrics": {
+    "accuracy": 0.38052933555432167,
+    "macro_f1": 0.5457500948915193,
+    "weighted_f1": 0.6593213110425873
+  },
+  "training_history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.7634748454478307,
+      "val_loss": 0.560310800636516,
+      "accuracy": 0.31593559133814547,
+      "macro_f1": 0.5114919559397442,
+      "weighted_f1": 0.6371802186058529
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.53962738530774,
+      "val_loss": 0.5378764541710124,
+      "accuracy": 0.34869516935036093,
+      "macro_f1": 0.5289423285493902,
+      "weighted_f1": 0.6520676928536486
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.49142149851323946,
+      "val_loss": 0.5404777530361624,
+      "accuracy": 0.3538774754765871,
+      "macro_f1": 0.5310008627842235,
+      "weighted_f1": 0.6513858696538963
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.4569264658979994,
+      "val_loss": 0.5492919420494753,
+      "accuracy": 0.3522117342217287,
+      "macro_f1": 0.5364664477886683,
+      "weighted_f1": 0.6561020385044225
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.4361214338847468,
+      "val_loss": 0.5621272504329682,
+      "accuracy": 0.38052933555432167,
+      "macro_f1": 0.5457500948915193,
+      "weighted_f1": 0.6593213110425873
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 2e-05,
+    "batch_size": 32,
+    "max_length": 128,
+    "weight_decay": 0.01,
+    "device": "mps"
+  },
+  "hf_repo_id": "criticalEdgeK/minilm-emotion-goemotions-8class"
+}
