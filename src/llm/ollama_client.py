@@ -482,6 +482,37 @@ class OllamaClient:
 
         return text.strip()
 
+    def list_loaded_models(self) -> list[str]:
+        """Return names of all models currently resident in Ollama RAM (/api/ps)."""
+        try:
+            resp = self._session.get(f"{self.base_url}/api/ps", timeout=5)
+            if resp.status_code == 200:
+                return [m["name"] for m in resp.json().get("models", [])]
+        except Exception:
+            pass
+        return []
+
+    def unload_all_loaded_models(self):
+        """
+        Evict every model currently in Ollama RAM.
+        Call this before loading a new model so stale weights don't sit
+        in memory alongside the one that's actually needed.
+        """
+        loaded = self.list_loaded_models()
+        if not loaded:
+            logger.info("Ollama RAM is already clear — nothing to unload")
+            return
+        for model_name in loaded:
+            try:
+                self._session.post(
+                    f"{self.base_url}/api/generate",
+                    json={"model": model_name, "keep_alive": 0},
+                    timeout=15,
+                )
+                logger.info(f"Unloaded from RAM: {model_name}")
+            except Exception as e:
+                logger.warning(f"Could not unload {model_name}: {e}")
+
     def preload_model(self, model: Optional[str] = None) -> bool:
         """
         Load a model into RAM without generating any text.

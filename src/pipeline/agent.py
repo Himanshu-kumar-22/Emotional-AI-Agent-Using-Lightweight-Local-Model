@@ -172,10 +172,12 @@ class EmotionalAgent:
             # 3. Prompt builder (stateless, always ready)
             self._prompt_builder = PromptBuilder()
 
-            # 4. LLM client — verify Ollama is running, then pre-load into RAM
+            # 4. LLM client — verify Ollama, clear stale models, load correct one
             logger.info("Connecting to Ollama...")
             self._llm_client = OllamaClient(model=self.llm_model)
             self._llm_client.check_ready()
+            logger.info("Clearing any stale models from Ollama RAM...")
+            self._llm_client.unload_all_loaded_models()
             logger.info(f"Pre-loading {self.llm_model} into RAM...")
             self._llm_client.preload_model()
 
