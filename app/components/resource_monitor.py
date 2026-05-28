@@ -46,38 +46,28 @@ def render_resource_sidebar(st, agent=None):
         agent: Optional EmotionalAgent for session stats
     """
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📊 System Resources")
+    st.sidebar.markdown("### System Resources")
 
     stats = get_resource_stats()
 
     # CPU
-    cpu_color = (
-        "🟢"
-        if stats["cpu_percent"] < 70
-        else "🟡" if stats["cpu_percent"] < 90 else "🔴"
-    )
-    st.sidebar.metric(f"{cpu_color} CPU Usage", f"{stats['cpu_percent']:.0f}%")
+    st.sidebar.metric("CPU Usage", f"{stats['cpu_percent']:.0f}%")
 
     # RAM
-    ram_color = (
-        "🟢"
-        if stats["ram_percent"] < 70
-        else "🟡" if stats["ram_percent"] < 85 else "🔴"
-    )
     st.sidebar.metric(
-        f"{ram_color} RAM",
+        "RAM",
         f"{stats['ram_used_gb']:.1f} / {stats['ram_total_gb']:.0f} GB",
         f"{stats['ram_percent']:.0f}% used",
     )
 
     # GPU info
     if stats.get("gpu_info"):
-        st.sidebar.markdown(f"🖥️ **GPU:** {stats['gpu_info']}")
+        st.sidebar.markdown(f"**GPU:** {stats['gpu_info']}")
 
     # Session stats — wrapped in try/except to never crash the sidebar
     if agent and agent.is_ready:
         st.sidebar.markdown("---")
-        st.sidebar.markdown("### 💬 Session Stats")
+        st.sidebar.markdown("### Session Stats")
         try:
             session_stats = agent.get_session_stats()
             st.sidebar.metric("Turns", session_stats.get("turn_count", 0))

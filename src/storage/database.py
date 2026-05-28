@@ -77,6 +77,15 @@ CREATE TABLE IF NOT EXISTS emotion_log (
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
 );
 
+-- User profile table: single row storing the user's name and RAM
+CREATE TABLE IF NOT EXISTS user_profile (
+    id          TEXT PRIMARY KEY DEFAULT 'profile',
+    -- AES-encrypted display name
+    name        TEXT NOT NULL,
+    ram_gb      INTEGER NOT NULL,
+    created_at  TEXT NOT NULL
+);
+
 -- Indices for efficient session-based queries
 CREATE INDEX IF NOT EXISTS idx_messages_session
     ON messages(session_id, turn_number);
