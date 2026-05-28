@@ -482,6 +482,60 @@ class OllamaClient:
 
         return text.strip()
 
+    def preload_model(self, model: Optional[str] = None) -> bool:
+        """
+        Load a model into RAM without generating any text.
+
+        Sends a keep_alive=-1 request so the model stays resident
+        until explicitly unloaded. Call this right after check_ready()
+        so the first real inference is instant.
+
+        Returns True if the model is now loaded, False on error.
+        """
+        target = model or self.model
+        try:
+            resp = self._session.post(
+                f"{self.base_url}/api/generate",
+                json={"model": target, "keep_alive": -1},
+                timeout=300,  # large models can take a while to load
+            )
+            ok = resp.status_code == 200
+            if ok:
+                logger.info(f"Model pre-loaded into RAM: {target}")
+            else:
+                logger.warning(f"Pre-load returned {resp.status_code} for {target}")
+            return ok
+        except Exception as e:
+            logger.warning(f"Could not pre-load model {target}: {e}")
+            return False
+
+    def unload_model(self, model: Optional[str] = None) -> bool:
+        """
+        Evict a model from RAM immediately.
+
+        Sends keep_alive=0 so Ollama releases the memory right away.
+        Call this before switching to a different model so the old
+        weights don't sit in RAM alongside the new ones.
+
+        Returns True if the unload request was accepted.
+        """
+        target = model or self.model
+        try:
+            resp = self._session.post(
+                f"{self.base_url}/api/generate",
+                json={"model": target, "keep_alive": 0},
+                timeout=15,
+            )
+            ok = resp.status_code == 200
+            if ok:
+                logger.info(f"Model unloaded from RAM: {target}")
+            else:
+                logger.warning(f"Unload returned {resp.status_code} for {target}")
+            return ok
+        except Exception as e:
+            logger.warning(f"Could not unload model {target}: {e}")
+            return False
+
     def get_model_info(self) -> dict:
         """Get metadata about the current model from Ollama."""
         try:
