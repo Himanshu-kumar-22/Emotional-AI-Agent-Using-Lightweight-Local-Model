@@ -196,6 +196,25 @@ class SessionManager:
         )
         return rows
 
+    def get_first_user_message(self, session_id: str) -> Optional[str]:
+        """Return the first user message text for a session, decrypted."""
+        self._check_initialized()
+        rows = self._db.execute(
+            """
+            SELECT content FROM messages
+            WHERE session_id = ? AND role = 'user'
+            ORDER BY turn_number ASC, created_at ASC
+            LIMIT 1
+            """,
+            (session_id,),
+        )
+        if not rows:
+            return None
+        try:
+            return self._enc.decrypt(rows[0]["content"])
+        except Exception:
+            return None
+
     def update_session_timestamp(self, session_id: str):
         """Update the session's updated_at timestamp."""
         self._db.execute_write(
@@ -399,6 +418,34 @@ class SessionManager:
             logger.info(f"Session deleted: {session_id[:8]}...")
             return True
         return False
+
+    # ── User Profile ──────────────────────────────────────────────────────────
+    def save_user_profile(self, name: str, ram_gb: int):
+        """Save (or replace) the single-row user profile."""
+        self._check_initialized()
+        self._db.execute_write(
+            """
+            INSERT OR REPLACE INTO user_profile (id, name, ram_gb, created_at)
+            VALUES ('profile', ?, ?, ?)
+            """,
+            (self._enc.encrypt(name), ram_gb, _now_iso()),
+        )
+        logger.info("User profile saved")
+
+    def get_user_profile(self) -> Optional[dict]:
+        """Return the user profile dict or None if not set up yet."""
+        self._check_initialized()
+        rows = self._db.execute(
+            "SELECT name, ram_gb FROM user_profile WHERE id = 'profile'"
+        )
+        if not rows:
+            return None
+        row = rows[0]
+        try:
+            name = self._enc.decrypt(row["name"])
+        except Exception:
+            name = ""
+        return {"name": name, "ram_gb": row["ram_gb"]}
 
     def close(self):
         """

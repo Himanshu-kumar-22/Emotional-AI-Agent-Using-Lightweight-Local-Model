@@ -175,6 +175,7 @@ class PromptBuilder:
         user_message: str,
         smoothed_emotion: SmoothedEmotion,
         conversation_history: Optional[list[dict]] = None,
+        user_name: Optional[str] = None,
     ) -> BuiltPrompt:
         """
         Build a complete emotion-conditioned prompt.
@@ -185,12 +186,13 @@ class PromptBuilder:
             conversation_history: List of previous turns as
                                   [{"role": "user"/"assistant",
                                     "content": "..."}]
+            user_name:            Optional display name to address the user by
 
         Returns:
             BuiltPrompt ready to pass to OllamaClient.generate()
         """
         # Build the system prompt (persona + emotional guidelines)
-        system_prompt = self._build_system_prompt(smoothed_emotion)
+        system_prompt = self._build_system_prompt(smoothed_emotion, user_name)
 
         # Build the user-facing prompt (emotional context + message)
         user_prompt = self._build_user_prompt(
@@ -216,7 +218,11 @@ class PromptBuilder:
 
         return result
 
-    def _build_system_prompt(self, smoothed_emotion: SmoothedEmotion) -> str:
+    def _build_system_prompt(
+        self,
+        smoothed_emotion: SmoothedEmotion,
+        user_name: Optional[str] = None,
+    ) -> str:
         """
         Build the system prompt by combining the base persona with
         emotion-specific behavioral guidelines.
@@ -231,7 +237,15 @@ class PromptBuilder:
         emotion_label = emotion_display.get("label", emotion.title())
         emoji = emotion_display.get("emoji", "")
 
-        system_prompt = f"""{BASE_SYSTEM_PROMPT}
+        name_line = (
+            f"The user's name is {user_name}. "
+            "Address them by name naturally — not in every sentence, "
+            "but where it feels warm and personal.\n\n"
+            if user_name
+            else ""
+        )
+
+        system_prompt = f"""{name_line}{BASE_SYSTEM_PROMPT}
 
 CURRENT EMOTIONAL CONTEXT:
 The user is currently experiencing: {emoji} {emotion_label}

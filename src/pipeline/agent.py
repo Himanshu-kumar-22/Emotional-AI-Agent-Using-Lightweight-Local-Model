@@ -133,6 +133,7 @@ class EmotionalAgent:
         self._turn_number: int = 0
         self._is_initialized: bool = False
         self._conversation_history: list[dict] = []
+        self._user_name: Optional[str] = None
 
         logger.info(
             f"EmotionalAgent created | "
@@ -263,6 +264,7 @@ class EmotionalAgent:
                 user_message=user_message,
                 smoothed_emotion=smoothed,
                 conversation_history=self._conversation_history,
+                user_name=self._user_name,
             )
 
             # ── Step 4: LLM Generation ─────────────────────────────────────
@@ -384,6 +386,7 @@ class EmotionalAgent:
             user_message=user_message,
             smoothed_emotion=smoothed,
             conversation_history=self._conversation_history,
+            user_name=self._user_name,
         )
 
         # Return stream iterator and emotion immediately
@@ -443,6 +446,76 @@ class EmotionalAgent:
     def new_session(self) -> str:
         """Start a fresh conversation (new session)."""
         return self.start_session()
+
+    def list_sessions(self, limit: int = 30) -> list[dict]:
+        """Return recent sessions for the chat history sidebar."""
+        if not self._is_initialized:
+            return []
+        try:
+            return self._storage.list_sessions(limit=limit)
+        except Exception:
+            return []
+
+    def load_session(self, session_id: str) -> list[dict]:
+        """Load an existing session and restore its conversation context."""
+        self._check_initialized()
+        messages = self._storage.get_messages(session_id)
+        self._conversation_history = [
+            {"role": m["role"], "content": m["content"]} for m in messages
+        ]
+        if len(self._conversation_history) > 20:
+            self._conversation_history = self._conversation_history[-20:]
+        self._current_session_id = session_id
+        self._turn_number = sum(1 for m in messages if m["role"] == "user")
+        self._smoother.reset()
+        return messages
+
+    def list_sessions_with_titles(self, limit: int = 30) -> list[dict]:
+        """Return recent sessions with their first user message as the display title."""
+        if not self._is_initialized:
+            return []
+        try:
+            sessions = self._storage.list_sessions(limit=limit)
+            result = []
+            for session in sessions:
+                first_msg = self._storage.get_first_user_message(session["id"])
+                if first_msg:
+                    text = first_msg.strip()
+                    title = text[:42] + "…" if len(text) > 42 else text
+                else:
+                    title = "New conversation"
+                result.append({**session, "title": title})
+            return result
+        except Exception:
+            return []
+
+    def delete_session(self, session_id: str) -> bool:
+        """Delete a session and all its messages."""
+        if not self._is_initialized:
+            return False
+        try:
+            return self._storage.delete_session(session_id)
+        except Exception:
+            return False
+
+    def set_user_name(self, name: str):
+        """Set the user's display name for personalised LLM responses."""
+        self._user_name = name
+
+    def save_user_profile(self, name: str, ram_gb: int):
+        """Persist user profile (name + RAM) to the database."""
+        self._check_initialized()
+        self._storage.save_user_profile(name, ram_gb)
+        self._user_name = name
+
+    def get_user_profile(self) -> Optional[dict]:
+        """Return stored user profile or None if first run."""
+        if not self._is_initialized:
+            return None
+        try:
+            return self._storage.get_user_profile()
+        except Exception:
+            return None
 
     def shutdown(self):
         """Clean shutdown of all components."""
