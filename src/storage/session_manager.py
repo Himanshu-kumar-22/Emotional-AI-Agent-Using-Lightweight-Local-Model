@@ -109,13 +109,16 @@ class SessionManager:
 
     def initialize_no_password(self):
         """
-        Initialize without encryption (Privacy Mode or development).
-        Data is stored in plaintext but only in memory.
-        Used when privacy_mode=True since in-memory data
-        is already ephemeral.
+        Initialize without a user password (Privacy Mode or development).
+        Uses a fixed password + fixed salt so the derived key is identical
+        across restarts, allowing previously saved data to be decrypted.
+        In privacy mode the DB is in-memory so this is still ephemeral.
         """
-        # Use a fixed development key — acceptable for in-memory only
-        self._enc.initialize("dev_ephemeral_key_memory_only")
+        # Fixed salt ensures the same AES key is derived every restart.
+        # The "password" is also fixed, so randomising the salt would
+        # produce a different key each run — breaking decryption of stored data.
+        _FIXED_SALT = b"emotionai_nopass"  # exactly 16 bytes
+        self._enc.initialize("dev_ephemeral_key_memory_only", salt=_FIXED_SALT)
         self._db.initialize()
         self._initialized = True
         logger.info("SessionManager initialized (no-password / privacy mode)")
@@ -124,6 +127,7 @@ class SessionManager:
     def create_session(
         self,
         metadata: Optional[dict] = None,
+        session_id: Optional[str] = None,
     ) -> str:
         """
         Create a new conversation session.
@@ -137,7 +141,7 @@ class SessionManager:
         """
         self._check_initialized()
 
-        session_id = _new_id()
+        session_id = session_id or _new_id()
         now = _now_iso()
 
         session_metadata = metadata or {

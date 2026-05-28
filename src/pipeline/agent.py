@@ -134,6 +134,7 @@ class EmotionalAgent:
         self._is_initialized: bool = False
         self._conversation_history: list[dict] = []
         self._user_name: Optional[str] = None
+        self._session_persisted: bool = False
 
         logger.info(
             f"EmotionalAgent created | "
@@ -171,10 +172,12 @@ class EmotionalAgent:
             # 3. Prompt builder (stateless, always ready)
             self._prompt_builder = PromptBuilder()
 
-            # 4. LLM client — verify Ollama is running
+            # 4. LLM client — verify Ollama is running, then pre-load into RAM
             logger.info("Connecting to Ollama...")
             self._llm_client = OllamaClient(model=self.llm_model)
             self._llm_client.check_ready()
+            logger.info(f"Pre-loading {self.llm_model} into RAM...")
+            self._llm_client.preload_model()
 
             # 5. Storage
             logger.info("Initializing storage...")
@@ -197,6 +200,9 @@ class EmotionalAgent:
         """
         Begin a new conversation session.
 
+        The DB row is created lazily — only when the first message is saved.
+        This prevents empty ghost sessions from accumulating on every startup.
+
         Returns:
             session_id for the new session.
         """
@@ -206,18 +212,26 @@ class EmotionalAgent:
         self._smoother.reset()
         self._turn_number = 0
         self._conversation_history = []
+        self._session_persisted = False
 
-        # Create database session
-        self._current_session_id = self._storage.create_session(
-            {
-                "llm_model": self.llm_model,
-                "emotion_model": self.emotion_model,
-                "privacy_mode": self.privacy_mode,
-            }
-        )
+        import uuid
+        self._current_session_id = str(uuid.uuid4())
 
-        logger.info(f"Session started: {self._current_session_id[:8]}...")
+        logger.info(f"Session ready (lazy): {self._current_session_id[:8]}...")
         return self._current_session_id
+
+    def _ensure_session_persisted(self):
+        """Write the session row to the DB on the first message of each session."""
+        if not self._session_persisted:
+            self._storage.create_session(
+                {
+                    "llm_model": self.llm_model,
+                    "emotion_model": self.emotion_model,
+                    "privacy_mode": self.privacy_mode,
+                },
+                session_id=self._current_session_id,
+            )
+            self._session_persisted = True
 
     def chat(self, user_message: str) -> AgentResponse:
         """
@@ -280,6 +294,7 @@ class EmotionalAgent:
                 logger.warning(f"LLM generation failed: {llm_response.error}")
 
             # ── Step 5: Save to Storage ────────────────────────────────────
+            self._ensure_session_persisted()
             self._storage.save_message(
                 session_id=self._current_session_id,
                 role="user",
@@ -409,6 +424,7 @@ class EmotionalAgent:
         Save a completed streamed response to storage.
         Called after streaming finishes and full text is collected.
         """
+        self._ensure_session_persisted()
         self._storage.save_message(
             session_id=self._current_session_id,
             role="user",
@@ -479,11 +495,10 @@ class EmotionalAgent:
             result = []
             for session in sessions:
                 first_msg = self._storage.get_first_user_message(session["id"])
-                if first_msg:
-                    text = first_msg.strip()
-                    title = text[:42] + "…" if len(text) > 42 else text
-                else:
-                    title = "New conversation"
+                if not first_msg:
+                    continue  # skip empty ghost sessions
+                text = first_msg.strip()
+                title = text[:42] + "…" if len(text) > 42 else text
                 result.append({**session, "title": title})
             return result
         except Exception:
@@ -516,6 +531,14 @@ class EmotionalAgent:
             return self._storage.get_user_profile()
         except Exception:
             return None
+
+    def unload_current_model(self):
+        """
+        Evict the current LLM from RAM via the Ollama API.
+        Call this before discarding an agent to free memory for the next model.
+        """
+        if self._llm_client:
+            self._llm_client.unload_model()
 
     def shutdown(self):
         """Clean shutdown of all components."""

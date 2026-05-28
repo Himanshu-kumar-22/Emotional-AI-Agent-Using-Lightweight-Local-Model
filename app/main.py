@@ -55,9 +55,12 @@ st.markdown(
     /* Kill Streamlit bottom/background layers completely */
     [data-testid="stBottomBlockContainer"],
     [data-testid="stBottomBlockContainer"] > div,
+    [data-testid="stBottom"],
+    [data-testid="stBottom"] > div,
+    [data-testid="stBottom"] > div > div,
     [data-testid="stDecoration"],
     [data-testid="stToolbar"] {
-        background: #0d0d0d !important;
+        background: #111827 !important;
         border: none !important;
         box-shadow: none !important;
     }
@@ -96,17 +99,14 @@ st.markdown(
 
     /* ── Pure black everywhere ── */
     .stApp {
-        background: #0d0d0d !important;
+        background: #111827 !important;
         min-height: 100vh !important;
     }
 
-    /* ── Layout container — edge-to-edge, no padding/gaps ── */
+    /* ── Layout container ── */
     [data-testid="stAppViewContainer"] {
-        padding: 0 !important;
-        gap: 0 !important;
-        align-items: stretch !important;
-        height: 100vh !important;
-        background: #0d0d0d !important;
+        background: #111827 !important;
+        min-height: 100vh !important;
     }
 
     /* ── Floating sidebar ───────────────────────────── */
@@ -115,29 +115,24 @@ st.markdown(
         width: 20vw !important;
         min-width: 200px !important;
         max-width: 300px !important;
-        background: #0d0d0d !important;
+        background: #0f172a !important;
         margin: 10px 0 10px 10px !important;
         height: calc(100vh - 30px) !important;
         border-radius: 18px !important;
         border: 1px solid rgba(255,255,255,0.06) !important;
         overflow: hidden !important;
         box-shadow:
-            0 10px 30px rgba(0,0,0,0.35),
+            0 10px 40px rgba(0,0,0,0.25),
             0 0 0 1px rgba(255,255,255,0.02) inset !important;
         flex-shrink: 0 !important;
         backdrop-filter: blur(14px) !important;
     }
 
-    /* ── Main panel — same flat dark, no decoration ── */
+    /* ── Main panel ── */
     [data-testid="stAppViewContainer"] .main {
-        flex: 1 !important;
-        margin: 0 !important;
-        border-radius: 0 !important;
-        border: none !important;
+        background: #111827 !important;
         overflow: visible !important;
         position: relative !important;
-        box-shadow: none !important;
-        background: #0d0d0d !important;
     }
 
     /* Blur disabled until gradient is correct */
@@ -152,12 +147,12 @@ st.markdown(
         background:
             radial-gradient(
                 circle at 50% 20%,
-                rgba(80, 90, 140, 0.10),
+                rgba(59, 130, 246, 0.10),
                 transparent 45%
             ),
             radial-gradient(
                 circle at 80% 80%,
-                rgba(60, 70, 110, 0.08),
+                rgba(99, 102, 241, 0.08),
                 transparent 40%
             );
         filter: blur(70px);
@@ -188,28 +183,28 @@ st.markdown(
     section[data-testid="stBottom"] > div,
     section[data-testid="stBottom"] > div > div,
     section[data-testid="stBottom"] > div > div > div {
-        background: #0d0d0d !important;
+        background: #111827 !important;
         border: none !important;
         box-shadow: none !important;
     }
 
     /* Actual floating chat input pill */
     .stChatInputContainer {
-        background: #0d0d0d  !important;
+        background: #1e293b !important;
         border: 1px solid rgba(255,255,255,0.08) !important;
         border-radius: 22px !important;
         box-shadow:
-            0 8px 30px rgba(0,0,0,0.35),
+            0 8px 30px rgba(0,0,0,0.25),
             0 0 0 1px rgba(255,255,255,0.02) inset !important;
         padding: 0.2rem 0.45rem !important;
     }
 
-    /* Force ALL bottom layers to same black */
+    /* Force ALL bottom layers to same background */
         section[data-testid="stBottom"],
         section[data-testid="stBottom"] > div,
         section[data-testid="stBottom"] > div > div,
         section[data-testid="stBottom"] > div > div > div {
-        background: #0d0d0d !important;
+        background: #111827 !important;
     }
 
     /* Inner area */
@@ -229,7 +224,7 @@ st.markdown(
 
     /* Placeholder */
     .stChatInputContainer textarea::placeholder {
-        color: #7d7d86 !important;
+        color: #94a3b8 !important;
     }
 
     /* Remove focus glow */
@@ -269,47 +264,131 @@ st.markdown(
         font-weight: 500;
         margin: 2px 0;
     }
-    /* Session history item buttons */
-    section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child button {
+
+        /* ─────────────────────────────────────────────
+    CHAT HISTORY ROWS
+    ───────────────────────────────────────────── */
+
+    /* Entire row spacing */
+    section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
+        position: relative !important;
+        width: 100% !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* Remove weird column gaps */
+    section[data-testid="stSidebar"] [data-testid="column"] {
+        padding: 0 !important;
+    }
+
+    /* LEFT BUTTON — takes almost full row */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:first-child {
+        width: 100% !important;
+    }
+
+    /* Conversation button */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:first-child button {
+        width: 100% !important;
         background: transparent !important;
         border: none !important;
+        color: #cbd5e1 !important;
         text-align: left !important;
-        font-size: 0.85em !important;
-        color: #ccc !important;
-        padding: 4px 8px !important;
-        border-radius: 6px !important;
-        min-height: 0 !important;
+        padding: 10px 38px 10px 12px !important;
+        border-radius: 10px !important;
+        transition:
+            background 0.15s ease,
+            color 0.15s ease !important;
+        min-height: 44px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        display: flex !important;
+        align-items: center !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child button:hover {
-        background: rgba(255,255,255,0.08) !important;
-        color: #fff !important;
+
+    /* Hover row */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]:hover
+    > [data-testid="column"]:first-child button {
+        background: rgba(99,102,241,0.18) !important;
+        color: white !important;
     }
-    /* Delete (×) buttons */
-    section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child button {
+
+    .session-active {
+        padding: 10px 38px 10px 12px !important;
+        min-height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    /* DELETE BUTTON COLUMN */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:last-child {
+        position: absolute !important;
+        right: 8px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 26px !important;
+        height: 26px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* Flatten Streamlit's inner div wrapper */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:last-child > div {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* DELETE BUTTON */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:last-child button {
+        opacity: 0 !important;
         background: transparent !important;
         border: none !important;
-        color: #444 !important;
-        font-size: 0.9em !important;
-        padding: 4px 6px !important;
+        color: #94a3b8 !important;
+        transition:
+            opacity 0.15s ease,
+            color 0.15s ease !important;
+        width: 26px !important;
+        height: 26px !important;
         min-height: 0 !important;
-        border-radius: 4px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        line-height: 1 !important;
+        font-size: 0.85em !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child button:hover {
-        color: #ff4d4d !important;
-        background: rgba(255, 77, 77, 0.12) !important;
+
+    /* SHOW X ON HOVER */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]:hover
+    > [data-testid="column"]:last-child button {
+        opacity: 1 !important;
     }
-    /* Neon green New Chat button */
-    section[data-testid="stSidebar"] [data-testid="baseButton-primary"] {
-        background-color: #39ff14 !important;
-        border-color: #39ff14 !important;
-        color: #000 !important;
-        font-weight: 600 !important;
-        box-shadow: 0 0 10px rgba(57, 255, 20, 0.45) !important;
+
+    /* X hover */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:last-child button:hover {
+        color: #ef4444 !important;
     }
-    section[data-testid="stSidebar"] [data-testid="baseButton-primary"]:hover {
-        background-color: #2ee00f !important;
-        box-shadow: 0 0 20px rgba(57, 255, 20, 0.75) !important;
-    }
+
     /* ── App hero heading (empty state) ── */
     .app-hero {
         text-align: center;
@@ -361,6 +440,37 @@ _RAM_TO_MODELS = {
 }
 
 
+_MODEL_LABELS = {
+    "mistral":                    "Mistral 7B",
+    "phi3:mini":                  "Phi-3 Mini",
+    "gemma2:2b-instruct-q4_K_M": "Gemma 2 2B",
+    "qwen2.5:14b":                "Qwen 2.5 14B",
+}
+
+# Ollama model weights in RAM (Q4 quantisation, rounded to 1 decimal)
+_MODEL_RAM_GB = {
+    "gemma2:2b-instruct-q4_K_M": 1.7,
+    "phi3:mini":                  2.2,
+    "mistral":                    4.1,
+    "qwen2.5:14b":                9.0,
+}
+
+# Emotion detection model footprint when loaded into RAM
+_EMOTION_RAM_GB = {
+    "distilbert": 0.3,
+    "minilm":     0.1,
+}
+
+
+def _fmt_model(model_key: str, emotion_model: str) -> str:
+    """Return the dropdown label including combined RAM usage."""
+    llm_gb = _MODEL_RAM_GB.get(model_key, 0)
+    emo_gb = _EMOTION_RAM_GB.get(emotion_model, 0)
+    total  = llm_gb + emo_gb
+    label  = _MODEL_LABELS.get(model_key, model_key)
+    return f"{label}  ·  ~{total:.1f} GB"
+
+
 def init_session_state():
     defaults = {
         "agent": None,
@@ -374,6 +484,9 @@ def init_session_state():
         "init_error": None,
         "user_profile": None,
         "user_profile_loaded": False,
+        # model-switch tracking
+        "switching_to_model": None,   # model key being loaded, or None
+        "prev_agent_for_unload": None, # old agent to evict from RAM
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -381,7 +494,24 @@ def init_session_state():
 
 
 def initialize_agent():
-    with st.spinner("Loading emotion model and connecting to Ollama..."):
+    model = st.session_state.llm_model
+    display = _MODEL_LABELS.get(model, model)
+    switching = st.session_state.switching_to_model
+
+    spinner_msg = (
+        f"Switching to {display} — freeing RAM and loading new weights…"
+        if switching
+        else f"Loading {display}…"
+    )
+
+    with st.spinner(spinner_msg):
+        # Unload the previous model inside the spinner so the user
+        # gets visual feedback instead of a silent UI freeze.
+        prev = st.session_state.prev_agent_for_unload
+        if prev:
+            prev.unload_current_model()
+            st.session_state.prev_agent_for_unload = None
+
         try:
             agent = EmotionalAgent(
                 privacy_mode=st.session_state.privacy_mode,
@@ -397,6 +527,51 @@ def initialize_agent():
         except Exception as e:
             st.session_state.init_error = str(e)
             st.session_state.initialized = False
+        finally:
+            st.session_state.switching_to_model = None
+            st.session_state.prev_agent_for_unload = None
+
+
+def _render_model_loading_screen(model: str):
+    display = _MODEL_LABELS.get(model, model)
+    st.markdown(
+        f"""
+<div style="
+    text-align: center;
+    padding: 5rem 1rem;
+    animation: fadeIn 0.3s ease;
+">
+    <div style="
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px; height: 56px;
+        border-radius: 14px;
+        background: rgba(99,102,241,0.15);
+        font-size: 1.8rem;
+        margin-bottom: 1.4rem;
+    ">⚙️</div>
+    <h2 style="
+        color: #e2e8f0;
+        font-size: 1.45rem;
+        font-weight: 600;
+        margin: 0 0 0.55rem;
+        letter-spacing: -0.01em;
+    ">Switching to {display}</h2>
+    <p style="
+        color: #64748b;
+        font-size: 0.88rem;
+        max-width: 340px;
+        margin: 0 auto;
+        line-height: 1.55;
+    ">
+        Unloading current model from RAM<br>
+        Loading <strong style="color:#94a3b8">{display}</strong> weights…
+    </p>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -504,7 +679,7 @@ def render_sidebar():
                                 )
                                 st.rerun()
                     with col_del:
-                        if st.button("×", key=f"del_{session['id']}"):
+                        if st.button("🗑", key=f"del_{session['id']}"):
                             agent.delete_session(session["id"])
                             if session["id"] == st.session_state.session_id:
                                 new_id = agent.new_session()
@@ -622,17 +797,12 @@ def main():
 
     # ── Top bar: brand (left) · model selector · settings (right) ──────
     llm_options = ["mistral", "phi3:mini", "gemma2:2b-instruct-q4_K_M", "qwen2.5:14b"]
-    llm_labels = {
-        "mistral": "Mistral-7B",
-        "phi3:mini": "Phi-3-Mini",
-        "gemma2:2b-instruct-q4_K_M": "Gemma 2 2B",
-        "qwen2.5:14b": "Qwen 2.5 14B",
-    }
     current_llm_index = (
         llm_options.index(st.session_state.llm_model)
         if st.session_state.llm_model in llm_options
         else 0
     )
+    _emotion_model = st.session_state.emotion_model
 
     col_brand, _, col_model, col_settings = st.columns([3, 4, 2, 1])
     with col_brand:
@@ -647,11 +817,14 @@ def main():
             "Model",
             options=llm_options,
             index=current_llm_index,
-            format_func=lambda x: llm_labels.get(x, x),
+            format_func=lambda x: _fmt_model(x, _emotion_model),
             label_visibility="collapsed",
             disabled=not st.session_state.initialized,
         )
         if llm_choice != st.session_state.llm_model:
+            # Save old agent — unload happens inside initialize_agent() spinner
+            st.session_state.prev_agent_for_unload = st.session_state.agent
+            st.session_state.switching_to_model = llm_choice
             st.session_state.llm_model = llm_choice
             st.session_state.initialized = False
             st.session_state.agent = None
@@ -674,6 +847,8 @@ def main():
                 "No data written to disk at any point.",
             )
             if privacy_mode != st.session_state.privacy_mode:
+                # Save old agent — unload happens inside initialize_agent() spinner
+                st.session_state.prev_agent_for_unload = st.session_state.agent
                 st.session_state.privacy_mode = privacy_mode
                 st.session_state.initialized = False
                 st.session_state.agent = None
@@ -699,6 +874,10 @@ def main():
                 st.session_state.init_error = None
                 st.rerun()
             return
+
+        # Show loading card in the main area when switching models
+        if st.session_state.switching_to_model:
+            _render_model_loading_screen(st.session_state.switching_to_model)
 
         initialize_agent()
         if not st.session_state.initialized:
