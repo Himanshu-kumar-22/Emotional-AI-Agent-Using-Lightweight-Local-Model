@@ -256,13 +256,24 @@ st.markdown(
         margin-top: 4px;
     }
     .session-active {
-        background: rgba(100, 110, 230, 0.18);
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 0.85em;
-        color: #a0aaff;
-        font-weight: 500;
-        margin: 2px 0;
+        /* Identical geometry to the inactive button so text never jumps size */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+        min-height: 44px !important;
+        padding: 10px 38px 10px 12px !important;
+        border-radius: 10px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        text-align: left !important;
+        /* Appearance — highlight only */
+        background: rgba(99, 102, 241, 0.22) !important;
+        color: #a5b4fc !important;
+        font-weight: 500 !important;
+        margin: 0 !important;
     }
 
         /* ─────────────────────────────────────────────
@@ -273,12 +284,33 @@ st.markdown(
     section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
         position: relative !important;
         width: 100% !important;
-        margin-bottom: 4px !important;
+        margin-bottom: 2px !important;
     }
 
     /* Remove weird column gaps */
     section[data-testid="stSidebar"] [data-testid="column"] {
         padding: 0 !important;
+    }
+
+    /* Zero out Streamlit's own wrapper margins so active (markdown) and
+       inactive (button) rows take identical vertical space. Without this
+       stMarkdownContainer adds extra top/bottom margin vs stButton. */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:first-child
+    [data-testid="stMarkdownContainer"] {
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+    }
+
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:first-child
+    [data-testid="stButton"] {
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
     }
 
     /* LEFT BUTTON — takes almost full row */
@@ -308,6 +340,15 @@ st.markdown(
         white-space: nowrap !important;
         display: flex !important;
         align-items: center !important;
+        justify-content: flex-start !important;
+    }
+
+    /* Button inner <p> that Streamlit renders — force left align */
+    section[data-testid="stSidebar"]
+    [data-testid="stHorizontalBlock"]
+    > [data-testid="column"]:first-child button p {
+        text-align: left !important;
+        margin: 0 !important;
     }
 
     /* Hover row */
@@ -316,13 +357,6 @@ st.markdown(
     > [data-testid="column"]:first-child button {
         background: rgba(99,102,241,0.18) !important;
         color: white !important;
-    }
-
-    .session-active {
-        padding: 10px 38px 10px 12px !important;
-        min-height: 44px !important;
-        display: flex !important;
-        align-items: center !important;
     }
 
     /* DELETE BUTTON COLUMN */
@@ -440,25 +474,50 @@ _RAM_TO_MODELS = {
 }
 
 
+# Reverse-map ram_gb integer → option string used in selectboxes
+_RAM_GB_TO_OPTION = {v: k for k, v in _RAM_OPTIONS.items()}
+
 _MODEL_LABELS = {
-    "mistral":                    "Mistral 7B",
-    "phi3:mini":                  "Phi-3 Mini",
+    "mistral": "Mistral 7B",
+    "phi3:mini": "Phi-3 Mini",
     "gemma2:2b-instruct-q4_K_M": "Gemma 2 2B",
-    "qwen2.5:14b":                "Qwen 2.5 14B",
+    "qwen2.5:14b": "Qwen 2.5 14B",
 }
+
+
+def _peek_user_ram_gb() -> int | None:
+    """
+    Read ram_gb directly from the SQLite file before the agent initialises.
+    ram_gb is a plain INTEGER column (not encrypted), so no key is needed.
+    Returns None if no profile exists or the DB isn't reachable.
+    """
+    try:
+        import sqlite3
+
+        db_path = settings.database_path
+        if not db_path.exists():
+            return None
+        conn = sqlite3.connect(str(db_path), check_same_thread=False)
+        row = conn.execute(
+            "SELECT ram_gb FROM user_profile WHERE id = 'profile'"
+        ).fetchone()
+        conn.close()
+        return int(row[0]) if row else None
+    except Exception:
+        return None
 
 # Ollama model weights in RAM (Q4 quantisation, rounded to 1 decimal)
 _MODEL_RAM_GB = {
     "gemma2:2b-instruct-q4_K_M": 1.7,
-    "phi3:mini":                  2.2,
-    "mistral":                    4.1,
-    "qwen2.5:14b":                9.0,
+    "phi3:mini": 2.2,
+    "mistral": 4.1,
+    "qwen2.5:14b": 9.0,
 }
 
 # Emotion detection model footprint when loaded into RAM
 _EMOTION_RAM_GB = {
     "distilbert": 0.3,
-    "minilm":     0.1,
+    "minilm": 0.1,
 }
 
 
@@ -466,8 +525,8 @@ def _fmt_model(model_key: str, emotion_model: str) -> str:
     """Return the dropdown label including combined RAM usage."""
     llm_gb = _MODEL_RAM_GB.get(model_key, 0)
     emo_gb = _EMOTION_RAM_GB.get(emotion_model, 0)
-    total  = llm_gb + emo_gb
-    label  = _MODEL_LABELS.get(model_key, model_key)
+    total = llm_gb + emo_gb
+    label = _MODEL_LABELS.get(model_key, model_key)
     return f"{label}  ·  ~{total:.1f} GB"
 
 
@@ -485,12 +544,35 @@ def init_session_state():
         "user_profile": None,
         "user_profile_loaded": False,
         # model-switch tracking
-        "switching_to_model": None,   # model key being loaded, or None
-        "prev_agent_for_unload": None, # old agent to evict from RAM
+        "switching_to_model": None,  # model key being loaded, or None
+        "prev_agent_for_unload": None,  # old agent to evict from RAM
+        # profile editor
+        "show_profile_editor": False,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    # On the very first render (before any agent exists), override the model
+    # defaults with whatever the saved RAM profile recommends.  This way a
+    # profile edit persists across app restarts without touching the config.
+    if not st.session_state.initialized and st.session_state.agent is None:
+        _apply_saved_ram_defaults()
+
+
+def _apply_saved_ram_defaults():
+    """Read ram_gb from the DB and correct llm_model / emotion_model."""
+    if st.session_state.privacy_mode:
+        return  # in-memory DB — nothing to peek at
+    ram_gb = _peek_user_ram_gb()
+    if ram_gb is None:
+        return
+    ram_option = _RAM_GB_TO_OPTION.get(ram_gb)
+    if not ram_option or ram_option not in _RAM_TO_MODELS:
+        return
+    models = _RAM_TO_MODELS[ram_option]
+    st.session_state.llm_model = models["llm_model"]
+    st.session_state.emotion_model = models["emotion_model"]
 
 
 def initialize_agent():
@@ -628,6 +710,88 @@ def render_setup_screen():
                 st.session_state.initialized = False
                 st.session_state.agent = None
                 st.session_state.messages = []
+                st.rerun()
+
+
+# ── Profile Editor ───────────────────────────────────────────────────────────
+def render_profile_editor():
+    profile = st.session_state.user_profile or {}
+    current_name = profile.get("name", "")
+    current_ram_gb = profile.get("ram_gb", 8)
+    current_ram_option = _RAM_GB_TO_OPTION.get(current_ram_gb, "8 GB")
+    current_ram_index = list(_RAM_OPTIONS.keys()).index(current_ram_option)
+
+    st.markdown(
+        """
+<div style="max-width:480px; margin:6rem auto 0; text-align:center;">
+    <h1 style="font-size:2rem; font-weight:700; margin-bottom:0.3em;">
+        Edit Profile
+    </h1>
+    <p style="color:#777; font-size:0.9em; margin-bottom:2rem;">
+        Update your name or RAM setting.<br>
+        Changing RAM will swap in the recommended model for that tier.
+    </p>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    _, col_c, _ = st.columns([1, 2, 1])
+    with col_c:
+        with st.form("edit_profile", clear_on_submit=False):
+            new_name = st.text_input(
+                "Your name",
+                value=current_name,
+                max_chars=64,
+            )
+            new_ram_choice = st.selectbox(
+                "How much RAM does your machine have?",
+                options=list(_RAM_OPTIONS.keys()),
+                index=current_ram_index,
+            )
+            col_save, col_cancel = st.columns(2)
+            with col_save:
+                submitted = st.form_submit_button(
+                    "Save Changes", use_container_width=True, type="primary"
+                )
+            with col_cancel:
+                cancelled = st.form_submit_button("Cancel", use_container_width=True)
+
+        if cancelled:
+            st.session_state.show_profile_editor = False
+            st.rerun()
+
+        if submitted:
+            if not new_name.strip():
+                st.error("Name cannot be empty.")
+            else:
+                new_ram_gb = _RAM_OPTIONS[new_ram_choice]
+                new_models = _RAM_TO_MODELS[new_ram_choice]
+                ram_changed = new_ram_gb != current_ram_gb
+
+                # Persist to DB (INSERT OR REPLACE — always safe to call)
+                st.session_state.agent.save_user_profile(new_name.strip(), new_ram_gb)
+                st.session_state.user_profile = {
+                    "name": new_name.strip(),
+                    "ram_gb": new_ram_gb,
+                }
+                st.session_state.user_profile_loaded = True
+                st.session_state.show_profile_editor = False
+
+                if ram_changed:
+                    # Swap models — reuse the same model-switch flow so the
+                    # loading screen and RAM unload/preload happen automatically.
+                    st.session_state.prev_agent_for_unload = st.session_state.agent
+                    st.session_state.switching_to_model = new_models["llm_model"]
+                    st.session_state.llm_model = new_models["llm_model"]
+                    st.session_state.emotion_model = new_models["emotion_model"]
+                    st.session_state.initialized = False
+                    st.session_state.agent = None
+                    st.session_state.messages = []
+                else:
+                    # Name-only change — just sync to the live agent, no re-init
+                    st.session_state.agent.set_user_name(new_name.strip())
+
                 st.rerun()
 
 
@@ -859,6 +1023,15 @@ def main():
                 st.caption("Privacy Mode ON — memory only.")
             else:
                 st.caption("Standard Mode — saved locally (encrypted).")
+            st.markdown("---")
+            st.markdown("**Profile**")
+            if st.button(
+                "Edit Profile",
+                use_container_width=True,
+                disabled=not st.session_state.initialized,
+            ):
+                st.session_state.show_profile_editor = True
+                st.rerun()
 
     # ── Initialize agent if needed ────────────────────────────────────────
     if not st.session_state.initialized:
@@ -897,6 +1070,11 @@ def main():
     # ── First-run setup gate ──────────────────────────────────────────────
     if st.session_state.user_profile is None:
         render_setup_screen()
+        return
+
+    # ── Profile editor (opened from Settings) ────────────────────────────
+    if st.session_state.show_profile_editor:
+        render_profile_editor()
         return
 
     # ── Welcome / empty state ─────────────────────────────────────────────
