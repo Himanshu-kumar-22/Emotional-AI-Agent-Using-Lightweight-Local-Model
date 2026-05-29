@@ -195,6 +195,14 @@ class AppConfig:
         }
     )
 
+    # ── HuggingFace model repos (public, no token required) ───────────────
+    hf_distilbert_repo: str = field(
+        default_factory=lambda: _env_str("HF_DISTILBERT_REPO", "")
+    )
+    hf_minilm_repo: str = field(
+        default_factory=lambda: _env_str("HF_MINILM_REPO", "")
+    )
+
     # ── LLM / Ollama ───────────────────────────────────────────────────────
     llm_model_name: str = field(
         default_factory=lambda: _env_str("LLM_MODEL_NAME", "phi3:mini")

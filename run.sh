@@ -128,7 +128,89 @@ else
     info "Profile RAM setting → using model: $MODEL"
 fi
 
-# ── 5. Pull the model if not already downloaded ───────────────────────────────
+# ── 5. Ensure emotion models are present (download from HF if missing) ────────
+info "Checking emotion models..."
+SCRIPT_DIR="$SCRIPT_DIR" python3 - <<'PYEOF'
+import sys, os
+from pathlib import Path
+
+PROJECT_ROOT = Path(os.environ.get("SCRIPT_DIR", ".")).resolve()
+
+sys.path.insert(0, str(PROJECT_ROOT))
+
+try:
+    from config.settings import settings
+    from huggingface_hub import snapshot_download
+    HF_AVAILABLE = True
+except ImportError:
+    HF_AVAILABLE = False
+
+MODELS = [
+    {
+        "name": "distilbert",
+        "path": PROJECT_ROOT / "models" / "emotion" / "distilbert-emotion",
+        "env_key": "HF_DISTILBERT_REPO",
+    },
+    {
+        "name": "minilm",
+        "path": PROJECT_ROOT / "models" / "emotion" / "minilm-emotion",
+        "env_key": "HF_MINILM_REPO",
+    },
+]
+
+for m in MODELS:
+    config_file = m["path"] / "config.json"
+    if config_file.exists():
+        print(f"\033[0;32m[run]\033[0m Emotion model '{m['name']}' already present — skipping download.")
+        continue
+
+    # Not present locally — try HF
+    try:
+        repo_id = getattr(settings, f"hf_{m['name']}_repo", "") if "settings" in dir() else ""
+    except Exception:
+        repo_id = ""
+
+    if not repo_id:
+        repo_id = os.environ.get(m["env_key"], "")
+
+    if not repo_id:
+        print(
+            f"\033[1;33m[run]\033[0m Emotion model '{m['name']}' not found locally and "
+            f"no HuggingFace repo set in .env ({m['env_key']}).\n"
+            f"       Train it manually: python3 scripts/train_emotion_model.py --model {m['name']}",
+            file=sys.stderr,
+        )
+        continue
+
+    print(f"\033[0;32m[run]\033[0m Emotion model '{m['name']}' not found locally.")
+    print(f"\033[0;32m[run]\033[0m Downloading from HuggingFace: {repo_id}")
+    print(f"\033[0;32m[run]\033[0m (One-time download — future starts use the local copy.)")
+
+    if not HF_AVAILABLE:
+        print(
+            f"\033[0;31m[run]\033[0m huggingface_hub not installed. "
+            f"Run: pip install huggingface_hub",
+            file=sys.stderr,
+        )
+        continue
+
+    try:
+        m["path"].mkdir(parents=True, exist_ok=True)
+        snapshot_download(
+            repo_id=repo_id,
+            local_dir=str(m["path"]),
+            ignore_patterns=["*.msgpack", "flax_model*", "tf_model*", "rust_model*"],
+        )
+        print(f"\033[0;32m[run]\033[0m Downloaded '{m['name']}' successfully.")
+    except Exception as e:
+        print(
+            f"\033[0;31m[run]\033[0m Download failed for '{m['name']}': {e}\n"
+            f"       Train manually: python3 scripts/train_emotion_model.py --model {m['name']}",
+            file=sys.stderr,
+        )
+PYEOF
+
+# ── 6. Pull the Ollama LLM if not already downloaded ──────────────────────────
 model_is_pulled() {
     local target="$1"
     local base
@@ -154,7 +236,7 @@ else
     info "Model '$MODEL' is already available."
 fi
 
-# ── 6. Launch Streamlit ───────────────────────────────────────────────────────
+# ── 7. Launch Streamlit ───────────────────────────────────────────────────────
 info "Launching Emotional AI Agent..."
 echo ""
 

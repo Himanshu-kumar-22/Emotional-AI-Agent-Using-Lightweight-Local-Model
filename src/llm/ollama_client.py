@@ -527,8 +527,13 @@ class OllamaClient:
         try:
             resp = self._session.post(
                 f"{self.base_url}/api/generate",
-                json={"model": target, "keep_alive": -1},
-                timeout=300,  # large models can take a while to load
+                # No "prompt" key (preload-only signal to Ollama).
+                # stream=False forces a single JSON response so requests.post()
+                # returns as soon as the model is resident — without it, some
+                # models (e.g. Gemma 2) keep the chunked-transfer connection open
+                # and requests blocks until the 300-second timeout fires.
+                json={"model": target, "keep_alive": -1, "stream": False},
+                timeout=120,
             )
             ok = resp.status_code == 200
             if ok:

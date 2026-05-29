@@ -546,6 +546,7 @@ def init_session_state():
         # model-switch tracking
         "switching_to_model": None,  # model key being loaded, or None
         "prev_agent_for_unload": None,  # old agent to evict from RAM
+        "show_loading_screen": False,  # True → render loading card, then rerun to init
         # profile editor
         "show_profile_editor": False,
     }
@@ -788,6 +789,7 @@ def render_profile_editor():
                     st.session_state.initialized = False
                     st.session_state.agent = None
                     st.session_state.messages = []
+                    st.session_state.show_loading_screen = True
                 else:
                     # Name-only change — just sync to the live agent, no re-init
                     st.session_state.agent.set_user_name(new_name.strip())
@@ -968,6 +970,19 @@ def main():
     )
     _emotion_model = st.session_state.emotion_model
 
+    def _on_model_change():
+        chosen = st.session_state._llm_selectbox
+        if chosen == st.session_state.llm_model:
+            return
+        st.session_state.prev_agent_for_unload = st.session_state.agent
+        st.session_state.switching_to_model = chosen
+        st.session_state.llm_model = chosen
+        st.session_state.initialized = False
+        st.session_state.agent = None
+        st.session_state.messages = []
+        st.session_state.user_profile_loaded = False
+        st.session_state.show_loading_screen = True
+
     col_brand, _, col_model, col_settings = st.columns([3, 4, 2, 1])
     with col_brand:
         st.markdown(
@@ -977,24 +992,16 @@ def main():
             unsafe_allow_html=True,
         )
     with col_model:
-        llm_choice = st.selectbox(
+        st.selectbox(
             "Model",
             options=llm_options,
             index=current_llm_index,
             format_func=lambda x: _fmt_model(x, _emotion_model),
             label_visibility="collapsed",
             disabled=not st.session_state.initialized,
+            key="_llm_selectbox",
+            on_change=_on_model_change,
         )
-        if llm_choice != st.session_state.llm_model:
-            # Save old agent — unload happens inside initialize_agent() spinner
-            st.session_state.prev_agent_for_unload = st.session_state.agent
-            st.session_state.switching_to_model = llm_choice
-            st.session_state.llm_model = llm_choice
-            st.session_state.initialized = False
-            st.session_state.agent = None
-            st.session_state.messages = []
-            st.session_state.user_profile_loaded = False
-            st.rerun()
     with col_settings:
         with st.popover("Settings"):
             st.session_state.show_debug = st.toggle(
@@ -1011,14 +1018,13 @@ def main():
                 "No data written to disk at any point.",
             )
             if privacy_mode != st.session_state.privacy_mode:
-                # Save old agent — unload happens inside initialize_agent() spinner
                 st.session_state.prev_agent_for_unload = st.session_state.agent
                 st.session_state.privacy_mode = privacy_mode
                 st.session_state.initialized = False
                 st.session_state.agent = None
                 st.session_state.messages = []
                 st.session_state.user_profile_loaded = False
-                st.rerun()
+                st.session_state.show_loading_screen = True
             if st.session_state.privacy_mode:
                 st.caption("Privacy Mode ON — memory only.")
             else:
@@ -1031,7 +1037,6 @@ def main():
                 disabled=not st.session_state.initialized,
             ):
                 st.session_state.show_profile_editor = True
-                st.rerun()
 
     # ── Initialize agent if needed ────────────────────────────────────────
     if not st.session_state.initialized:
@@ -1048,10 +1053,16 @@ def main():
                 st.rerun()
             return
 
-        # Show loading card in the main area when switching models
-        if st.session_state.switching_to_model:
-            _render_model_loading_screen(st.session_state.switching_to_model)
+        # Phase 1: render the loading card and immediately rerun so the user
+        # sees it before the blocking initialize_agent() call starts.
+        if st.session_state.show_loading_screen:
+            _render_model_loading_screen(
+                st.session_state.switching_to_model or st.session_state.llm_model
+            )
+            st.session_state.show_loading_screen = False
+            st.rerun()
 
+        # Phase 2: actually load the model (runs on the rerun triggered above)
         initialize_agent()
         if not st.session_state.initialized:
             return

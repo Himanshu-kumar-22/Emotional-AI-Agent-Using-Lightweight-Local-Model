@@ -179,7 +179,11 @@ class EmotionalAgent:
             logger.info("Clearing any stale models from Ollama RAM...")
             self._llm_client.unload_all_loaded_models()
             logger.info(f"Pre-loading {self.llm_model} into RAM...")
-            self._llm_client.preload_model()
+            if not self._llm_client.preload_model():
+                raise RuntimeError(
+                    f"Failed to load model '{self.llm_model}' into Ollama RAM. "
+                    "Check available memory or try restarting Ollama."
+                )
 
             # 5. Storage
             logger.info("Initializing storage...")
