@@ -100,13 +100,16 @@ st.markdown(
     /* ── Pure black everywhere ── */
     .stApp {
         background: #111827 !important;
-        min-height: 100vh !important;
+        height: 100vh !important;
+        overflow: hidden !important;
     }
 
-    /* ── Layout container ── */
+    /* ── Layout container — fills viewport, owns the scroll ── */
     [data-testid="stAppViewContainer"] {
         background: #111827 !important;
-        min-height: 100vh !important;
+        height: 100vh !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
     }
 
     /* ── Floating sidebar ───────────────────────────── */
@@ -128,11 +131,19 @@ st.markdown(
         backdrop-filter: blur(14px) !important;
     }
 
+    /* ── Sidebar inner scroll — outer keeps overflow:hidden for border-radius ── */
+    section[data-testid="stSidebar"] > div:first-child {
+        overflow-y: auto !important;
+        height: 100% !important;
+    }
+
     /* ── Main panel ── */
     [data-testid="stAppViewContainer"] .main {
         background: #111827 !important;
-        overflow: visible !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
         position: relative !important;
+        height: 100% !important;
     }
 
     /* Blur disabled until gradient is correct */
@@ -166,6 +177,7 @@ st.markdown(
         margin-right: auto !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
+        padding-bottom: 6rem !important;
     }
 
     /* ─────────────────────────────────────────────

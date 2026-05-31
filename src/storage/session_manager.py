@@ -154,7 +154,7 @@ class SessionManager:
 
         self._db.execute_write(
             """
-            INSERT INTO sessions (id, created_at, updated_at, metadata)
+            INSERT OR IGNORE INTO sessions (id, created_at, updated_at, metadata)
             VALUES (?, ?, ?, ?)
             """,
             (session_id, now, now, encrypted_metadata),
